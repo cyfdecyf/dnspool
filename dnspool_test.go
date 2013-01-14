@@ -5,8 +5,10 @@ import (
 )
 
 func init() {
-	const nGoroutine = 10
-	InitDNSPool(nGoroutine)
+	// Test SetGoroutineNumber
+	SetGoroutineNumber(1)
+	SetGoroutineNumber(1024)
+	SetGoroutineNumber(64)
 }
 
 func checkLocalhostIP(addrs []string, err error, msg string, t *testing.T) {

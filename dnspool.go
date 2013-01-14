@@ -1,5 +1,5 @@
-// Package dnspool uses a goroutine pool for DNS resolving to limit number of
-// OS threads that will be spawned by the go runtime.
+// Package dnspool creates a goroutine pool for DNS resolving to limit the
+// number of OS threads that will be spawned by the go runtime.
 //
 // It will nolonger be needed when the go runtime provides a way to limit OS
 // threads creation.
@@ -21,22 +21,34 @@ type lookupRequest struct {
 // Resolver provides LookupHost method which can be used non-concurrently.
 type Resolver lookupRequest
 
-var requestChan chan *lookupRequest
+// Maximum concurrent lookup request
+const maxLookupReq = 256
 
-// Initialize the DNS resove goroutine pool with n goroutines. Must call this
-// first using any other functions in this package.
-func InitDNSPool(n int) {
-	const defaultNGoroutine = 100
+var requestChan = make(chan *lookupRequest, maxLookupReq)
 
-	if n <= 0 {
-		fmt.Printf("initDNSPool parameter error: %d is not positive, using default value %d\n",
-			n, defaultNGoroutine)
-	} else {
-		n = defaultNGoroutine
+// Default goroutine pool size. Making this larger than maxLookupReq is
+// useless as the channel can hold only that many lookup request.
+var nGoroutine = 32
+
+func init() {
+	for i := 0; i < nGoroutine; i++ {
+		go lookup()
 	}
+}
 
-	requestChan = make(chan *lookupRequest, n)
-	for i := 0; i < n; i++ {
+// Set the number of goroutines used to do DNS query. If n <= current
+// goroutine number or is larger than maximum concurrent DNS request, this
+// function will do nothing.
+func SetGoroutineNumber(n int) {
+	if n <= nGoroutine {
+		fmt.Printf("SetGoroutineNumber: %d <= current goroutine number %d, do nothing\n", n, nGoroutine)
+		return
+	}
+	if n > maxLookupReq {
+		fmt.Printf("SetGoroutineNumber: %d > maximum goroutines number %d, do nothing\n", n, maxLookupReq)
+		return
+	}
+	for ; nGoroutine < n; nGoroutine++ {
 		go lookup()
 	}
 }
@@ -65,5 +77,5 @@ func (r *Resolver) LookupHost(host string) (addrs []string, err error) {
 // same goroutine, it's better to create a new Resolver to avoid some
 // performance overhead.
 func LookupHost(host string) (addrs []string, err error) {
-	return NewResolver().LookupHost()
+	return NewResolver().LookupHost(host)
 }
