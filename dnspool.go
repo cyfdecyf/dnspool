@@ -65,6 +65,5 @@ func (r *Resolver) LookupHost(host string) (addrs []string, err error) {
 // same goroutine, it's better to create a new Resolver to avoid some
 // performance overhead.
 func LookupHost(host string) (addrs []string, err error) {
-	r := NewResolver()
-	return r.LookupHost(host)
+	return NewResolver().LookupHost()
 }
