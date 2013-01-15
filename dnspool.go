@@ -73,9 +73,35 @@ func (r *Resolver) LookupHost(host string) (addrs []string, err error) {
 	return r.addrs, r.err
 }
 
-// Same as net.LookupHost. If you are going to call this repeatedly in the
+// Same usage as net.LookupHost. If you are going to call this repeatedly in the
 // same goroutine, it's better to create a new Resolver to avoid some
 // performance overhead.
 func LookupHost(host string) (addrs []string, err error) {
 	return NewResolver().LookupHost(host)
+}
+
+// Same usage as as net.Dial. This function will use LookupHost to resolve
+// host address, then try net.Dial on each returned ip address till one
+// succeeds or all fail.
+func Dial(hostPort string) (c net.Conn, err error) {
+	var addrs []string
+	var host, port string
+
+	if host, port, err = net.SplitHostPort(hostPort); err != nil {
+		return
+	}
+	// No need to call LookupHost if host part is IP address
+	if ip := net.ParseIP(host); ip != nil {
+		return net.Dial("tcp", hostPort)
+	}
+	if addrs, err = LookupHost(host); err != nil {
+		return
+	}
+	for _, ip := range addrs {
+		ipHost := net.JoinHostPort(ip, port)
+		if c, err = net.Dial("tcp", ipHost); err == nil {
+			return
+		}
+	}
+	return nil, err
 }
