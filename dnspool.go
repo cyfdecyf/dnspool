@@ -1,9 +1,14 @@
-// Package dnspool creates a goroutine pool for DNS resolving to limit the
-// number of OS threads that will be spawned by the go runtime.
-//
-// It will nolonger be needed when the go runtime provides a way to limit OS
-// threads creation.
+/*
+Package dnspool creates a goroutine pool for DNS query to limit the number of
+OS threads that will be spawned by the go runtime.
 
+Default number of goroutines for DNS lookup is set to 32 now. You can increase
+goroutine number by calling SetGoroutineNumber. Note the maximum
+number of goroutines is 256. (Please tell me if this number is not enough.)
+
+This package will no longer be needed when the go runtime provides a way to
+limit OS threads creation.
+*/
 package dnspool
 
 import (
@@ -36,9 +41,9 @@ func init() {
 	}
 }
 
-// Set the number of goroutines used to do DNS query. If n <= current
-// goroutine number or is larger than maximum concurrent DNS request, this
-// function will do nothing.
+// SetGoroutineNumber sets the number of goroutines used to do DNS query.
+// If n <= current goroutine number or is larger than maximum concurrent DNS
+// request, this function will do nothing.
 func SetGoroutineNumber(n int) {
 	if n <= nGoroutine {
 		fmt.Printf("SetGoroutineNumber: %d <= current goroutine number %d, do nothing\n", n, nGoroutine)
@@ -65,7 +70,7 @@ func NewResolver() *Resolver {
 	return &Resolver{done: make(chan byte)}
 }
 
-// Same as net.LookupHost. Not thread safe.
+// LookupHost has the same usage as net.LookupHost. Not thread safe.
 func (r *Resolver) LookupHost(host string) (addrs []string, err error) {
 	r.host = host
 	requestChan <- (*lookupRequest)(r)
@@ -73,16 +78,16 @@ func (r *Resolver) LookupHost(host string) (addrs []string, err error) {
 	return r.addrs, r.err
 }
 
-// Same usage as net.LookupHost. If you are going to call this repeatedly in the
-// same goroutine, it's better to create a new Resolver to avoid some
-// performance overhead.
+// LookupHost has the same usage as net.LookupHost. If you are going to call
+// this repeatedly in the same goroutine, it's better to create a new Resolver
+// to avoid some performance overhead.
 func LookupHost(host string) (addrs []string, err error) {
 	return NewResolver().LookupHost(host)
 }
 
-// Same usage as as net.Dial. This function will use LookupHost to resolve
-// host address, then try net.Dial on each returned ip address till one
-// succeeds or all fail.
+// Dial has the same usage as as net.Dial. This function will use LookupHost
+// to resolve host address, then try net.Dial on each returned ip address till
+// one succeeds or all fail.
 func Dial(hostPort string) (c net.Conn, err error) {
 	var addrs []string
 	var host, port string
