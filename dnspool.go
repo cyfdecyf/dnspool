@@ -2,9 +2,9 @@
 Package dnspool creates a goroutine pool for DNS query to limit the number of
 OS threads that will be spawned by the go runtime.
 
-Default number of goroutines for DNS lookup is set to 32 now. You can increase
+Default number of goroutines for DNS lookup is set to 8 now. You can increase
 goroutine number by calling SetGoroutineNumber. Note the maximum
-number of goroutines is 256. (Please tell me if this number is not enough.)
+number of goroutines is 32. (Please tell me if this number is not enough.)
 
 This package will no longer be needed when the go runtime provides a way to
 limit OS threads creation.
@@ -27,13 +27,13 @@ type lookupRequest struct {
 type Resolver lookupRequest
 
 // Maximum concurrent lookup request
-const maxLookupReq = 256
+const maxLookupReq = 32
 
 var requestChan = make(chan *lookupRequest, maxLookupReq)
 
 // Default goroutine pool size. Making this larger than maxLookupReq is
 // useless as the channel can hold only that many lookup request.
-var nGoroutine = 32
+var nGoroutine = 8
 
 func init() {
 	for i := 0; i < nGoroutine; i++ {
